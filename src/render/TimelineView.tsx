@@ -316,7 +316,8 @@ export function TimelineView({
       }
     }
 
-    // 關係線：只連同一份文件內、兩端都畫得出來的事件
+    // 關係線：只連同一份文件內、兩端都畫得出來的事件。
+    // 路徑與說明標籤的位置在這裡先算好，說明標籤會畫在最上層避免與事件文字交疊。
     const relationLines = sources.flatMap((source) =>
       (source.doc.relations ?? []).flatMap((rel, i) => {
         const fromKey = `${source.id}/${rel.from}`
@@ -324,15 +325,31 @@ export function TimelineView({
         const from = anchors.get(fromKey)
         const to = anchors.get(toKey)
         if (!from || !to) return []
+
+        const sameLevel = Math.abs(from.y - to.y) < 12
+        const midY = sameLevel ? Math.min(from.y, to.y) - 44 : (from.y + to.y) / 2
+        const d = sameLevel
+          ? `M ${from.x} ${from.y - 8} C ${from.x} ${midY}, ${to.x} ${midY}, ${to.x} ${to.y - 8}`
+          : `M ${from.x} ${from.y} C ${from.x} ${midY}, ${to.x} ${midY}, ${to.x} ${to.y}`
+
+        const label = rel.label ?? RELATION_LABELS[rel.type] ?? rel.type
+        // 標籤底框的尺寸與位置（夾在畫面內，不被切出去）
+        const labelW = estimateTextWidth(label, 11) + 18
+        const labelX = Math.min(
+          Math.max((from.x + to.x) / 2, labelW / 2 + 4),
+          width - labelW / 2 - 4,
+        )
         return [
           {
             id: `${source.id}/rel-${i}`,
-            from,
-            to,
+            d,
             fromKey,
             toKey,
             type: rel.type,
-            label: rel.label ?? RELATION_LABELS[rel.type] ?? rel.type,
+            label,
+            labelW,
+            labelX,
+            labelY: midY,
           },
         ]
       }),
@@ -440,45 +457,24 @@ export function TimelineView({
                 <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
               </marker>
             </defs>
-            {layout.relationLines.map(({ id, from, to, fromKey, toKey, type, label }) => {
+            {layout.relationLines.map(({ id, d, fromKey, toKey, type }) => {
               // 點選或滑鼠懸停的事件，其關係線都會亮起
               const active =
                 selectedKey === fromKey ||
                 selectedKey === toKey ||
                 hoveredKey === fromKey ||
                 hoveredKey === toKey
-              const sameLevel = Math.abs(from.y - to.y) < 12
-              const midY = sameLevel ? Math.min(from.y, to.y) - 44 : (from.y + to.y) / 2
-              const d = sameLevel
-                ? `M ${from.x} ${from.y - 8} C ${from.x} ${midY}, ${to.x} ${midY}, ${to.x} ${to.y - 8}`
-                : `M ${from.x} ${from.y} C ${from.x} ${midY}, ${to.x} ${midY}, ${to.x} ${to.y}`
               return (
-                <g key={id}>
-                  <path
-                    d={d}
-                    fill="none"
-                    stroke={active ? '#d97706' : '#94a3b8'}
-                    strokeWidth={active ? 2.5 : 1.25}
-                    strokeDasharray={type === 'same_event' ? '4 3' : undefined}
-                    opacity={active ? 0.95 : 0.4}
-                    markerEnd="url(#hst-rel-arrow)"
-                  />
-                  {active && (
-                    <text
-                      x={(from.x + to.x) / 2}
-                      y={midY + 4}
-                      textAnchor="middle"
-                      fontSize={11}
-                      fontWeight={600}
-                      fill="#b45309"
-                      stroke="#ffffff"
-                      strokeWidth={4}
-                      style={{ paintOrder: 'stroke' }}
-                    >
-                      {label}
-                    </text>
-                  )}
-                </g>
+                <path
+                  key={id}
+                  d={d}
+                  fill="none"
+                  stroke={active ? '#d97706' : '#94a3b8'}
+                  strokeWidth={active ? 2.5 : 1.25}
+                  strokeDasharray={type === 'same_event' ? '4 3' : undefined}
+                  opacity={active ? 0.95 : 0.4}
+                  markerEnd="url(#hst-rel-arrow)"
+                />
               )
             })}
           </g>
@@ -515,6 +511,18 @@ export function TimelineView({
                     })
                   }}
                 >
+                  {/* 看不見的感應區：滑鼠不用精準壓在小圓點上也能 hover／點擊 */}
+                  {kind === 'bar' ? (
+                    <rect
+                      x={shapeL - 6}
+                      y={cy - barH / 2 - 7}
+                      width={shapeR - shapeL + 12}
+                      height={barH + 14}
+                      fill="transparent"
+                    />
+                  ) : (
+                    <circle cx={(shapeL + shapeR) / 2} cy={cy} r={dotR + 8} fill="transparent" />
+                  )}
                   {/* 關鍵事件的常駐光暈 */}
                   {isKey &&
                     (kind === 'bar' ? (
@@ -590,6 +598,44 @@ export function TimelineView({
             })}
           </g>
         ))}
+
+        {/* 亮起的關係說明標籤：畫在最上層，白底圓角框，不與事件文字交疊 */}
+        {showRelations && (
+          <g pointerEvents="none">
+            {layout.relationLines
+              .filter(
+                ({ fromKey, toKey }) =>
+                  selectedKey === fromKey ||
+                  selectedKey === toKey ||
+                  hoveredKey === fromKey ||
+                  hoveredKey === toKey,
+              )
+              .map(({ id, label, labelW, labelX, labelY }) => (
+                <g key={`${id}-label`}>
+                  <rect
+                    x={labelX - labelW / 2}
+                    y={labelY - 10}
+                    width={labelW}
+                    height={20}
+                    rx={10}
+                    fill="#fffbeb"
+                    stroke="#f59e0b"
+                    strokeWidth={1}
+                  />
+                  <text
+                    x={labelX}
+                    y={labelY + 4}
+                    textAnchor="middle"
+                    fontSize={11}
+                    fontWeight={600}
+                    fill="#b45309"
+                  >
+                    {label}
+                  </text>
+                </g>
+              ))}
+          </g>
+        )}
       </svg>
     </div>
   )
