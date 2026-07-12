@@ -1,9 +1,9 @@
 // ui 層：頁面外殼與工具列。
-// M3：預載「同婚立法進程」與「平權運動」兩份檔案作為兩個圖層，
-// 左側面板可顯示隱藏、排序、改配色，也能載入更多 .hst.json。
+// 預設載入「科幻小說的預言」與「現實世界的實現」兩份範本作為兩個圖層，
+// 展示多圖層對比；左側面板可顯示隱藏、排序、改配色，也能載入更多 .hst.json。
 import { useCallback, useEffect, useState } from 'react'
-import rawMovement from '../../examples/equality-movement.hst.json?raw'
-import rawLegislation from '../../examples/marriage-legislation.hst.json?raw'
+import rawReality from '../../examples/real-world-milestones.hst.json?raw'
+import rawScifi from '../../examples/scifi-visions.hst.json?raw'
 import { parseHstJson } from '../adapters/json'
 import { useLayers } from '../compose/useLayers'
 import type { EventSelection, ScaleMode, ScaleRequest } from '../render/TimelineView'
@@ -20,8 +20,8 @@ const SCALE_LABELS: Record<ScaleMode, string> = {
   year: '年',
 }
 
-// 預載的範例（模組載入時解析一次）
-const INITIAL_RESULTS = [rawLegislation, rawMovement].map((raw) => parseHstJson(raw))
+// 預載的範例（模組載入時解析一次）：科幻在上、現實在下
+const INITIAL_RESULTS = [rawScifi, rawReality].map((raw) => parseHstJson(raw))
 const INITIAL_DOCS = INITIAL_RESULTS.flatMap((r) => (r.ok ? [r.doc] : []))
 const INITIAL_ERRORS = INITIAL_RESULTS.flatMap((r) =>
   r.ok ? [] : r.errors.map((e) => `內建範例載入失敗 ${e.path}：${e.message}`),

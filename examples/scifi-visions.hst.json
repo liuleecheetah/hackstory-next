@@ -1,0 +1,167 @@
+{
+  "hackstory": "0.1",
+  "id": "scifi-visions",
+  "meta": {
+    "title": "科幻小說的預言",
+    "subtitle": "作品發表的那一刻，未來被寫下",
+    "description": "整理 1865–1992 年間，科幻作品首次描繪後來成真的科技與社會現象的時間點。與「現實世界的實現」時間軸疊加對比，兩軸之間的水平距離，就是未來到來所花的時間。",
+    "authors": [
+      { "name": "HackStory 專案", "url": "https://g0v.tw" }
+    ],
+    "license": "CC-BY-4.0",
+    "language": "zh-TW",
+    "topics": ["科幻", "科技史", "文學"],
+    "created": "2026-07-12",
+    "updated": "2026-07-12",
+    "revision": 1
+  },
+
+  "tracks": [
+    {
+      "id": "scifi",
+      "title": "科幻作品",
+      "description": "小說、雜誌文章與影集首次提出的未來想像",
+      "color": "#7c3aed",
+      "order": 1
+    }
+  ],
+
+  "events": [
+    {
+      "id": "evt-verne-moon",
+      "track": "scifi",
+      "title": "《從地球到月球》：以巨砲送人上月球",
+      "description": "儒勒·凡爾納描寫三名乘客乘砲彈飛向月球，發射地點設在美國佛羅里達——與一百多年後阿波羅計畫的發射地不謀而合。小說中也計算了脫離地球所需的速度。",
+      "start": { "value": "1865", "precision": "year" },
+      "importance": 5,
+      "confidence": "verified",
+      "tags": ["凡爾納", "太空"],
+      "sources": [
+        { "title": "維基百科：從地球到月球", "url": "https://zh.wikipedia.org/wiki/從地球到月球" }
+      ]
+    },
+    {
+      "id": "evt-verne-sea",
+      "track": "scifi",
+      "title": "《海底兩萬里》：電力潛艇鸚鵡螺號",
+      "description": "凡爾納筆下尼莫船長的「鸚鵡螺號」以電力驅動、可長期潛航，遠遠超前當時的潛艇技術。後來美國第一艘核動力潛艇便以「鸚鵡螺號」命名致敬。",
+      "start": { "value": "1870", "precision": "year" },
+      "importance": 4,
+      "confidence": "verified",
+      "tags": ["凡爾納", "海洋"]
+    },
+    {
+      "id": "evt-bellamy",
+      "track": "scifi",
+      "title": "《回顧》：預言「信用卡」",
+      "description": "愛德華·貝拉米的烏托邦小說《回顧：2000-1887》中，公民持一張卡片消費，「credit card」一詞由此誕生——比真實的簽帳卡早了六十多年。",
+      "start": { "value": "1888", "precision": "year" },
+      "importance": 3,
+      "confidence": "verified",
+      "tags": ["經濟", "烏托邦"]
+    },
+    {
+      "id": "evt-rur",
+      "track": "scifi",
+      "title": "《R.U.R.》：「robot」一詞誕生",
+      "description": "卡雷爾·恰佩克的舞台劇《羅梭的萬能工人》首次使用「robot」稱呼人造勞工，源自捷克語 robota（勞役）。從此人類對機器代工的想像有了名字。",
+      "start": { "value": "1920", "precision": "year" },
+      "importance": 4,
+      "confidence": "verified",
+      "tags": ["機器人", "戲劇"]
+    },
+    {
+      "id": "evt-brave-new-world",
+      "track": "scifi",
+      "title": "《美麗新世界》：體外受精成為常態",
+      "description": "阿道斯·赫胥黎描寫嬰兒在「孵化與制約中心」的瓶中培養、體外受精取代自然生育的社會，同時提出以娛樂與藥物維持秩序的統治想像。",
+      "start": { "value": "1932", "precision": "year" },
+      "importance": 4,
+      "confidence": "verified",
+      "tags": ["生物科技", "反烏托邦"]
+    },
+    {
+      "id": "evt-clarke-satellite",
+      "track": "scifi",
+      "title": "克拉克提出同步衛星通訊構想",
+      "description": "科幻作家亞瑟·克拉克在《Wireless World》雜誌撰文，提出在地球同步軌道部署三顆衛星即可覆蓋全球通訊。這條軌道後來被稱為「克拉克軌道」。",
+      "start": { "value": "1945-10", "precision": "month", "raw": "1945年10月" },
+      "importance": 4,
+      "confidence": "verified",
+      "tags": ["克拉克", "衛星", "通訊"]
+    },
+    {
+      "id": "evt-1984",
+      "track": "scifi",
+      "title": "《一九八四》：無所不在的監視",
+      "description": "喬治·歐威爾筆下的「電幕」同時播送與監看，「老大哥在看著你」成為極權監控的代名詞。出版於 1949 年 6 月 8 日。",
+      "start": { "value": "1949-06-08", "precision": "day", "raw": "1949/6/8" },
+      "importance": 5,
+      "confidence": "verified",
+      "tags": ["歐威爾", "監控", "反烏托邦"],
+      "sources": [
+        { "title": "維基百科：一九八四", "url": "https://zh.wikipedia.org/wiki/一九八四" }
+      ]
+    },
+    {
+      "id": "evt-f451",
+      "track": "scifi",
+      "title": "《華氏451度》：塞進耳朵的「貝殼」",
+      "description": "雷·布萊伯利描寫人們耳中塞著名為「貝殼」的微型無線收音機，日夜灌送聲音——形貌與使用情境都神似今日的無線耳機。",
+      "start": { "value": "1953", "precision": "year" },
+      "importance": 3,
+      "confidence": "verified",
+      "tags": ["布萊伯利", "媒體"]
+    },
+    {
+      "id": "evt-star-trek",
+      "track": "scifi",
+      "title": "《星艦迷航記》首播：翻蓋通訊器",
+      "description": "影集中艦隊人員使用的掌上翻蓋通訊器，日後被行動電話發明者 Martin Cooper 點名為靈感來源。",
+      "start": { "value": "1966-09-08", "precision": "day", "raw": "1966/9/8" },
+      "importance": 4,
+      "confidence": "verified",
+      "tags": ["星艦迷航記", "通訊"]
+    },
+    {
+      "id": "evt-2001",
+      "track": "scifi",
+      "title": "《2001：太空漫遊》：新聞平板與 HAL 9000",
+      "description": "克拉克與庫柏力克描繪太空人邊吃飯邊在薄型「新聞平板」（Newspad）上讀新聞，以及會對話、下棋、也會出錯的人工智慧 HAL 9000。",
+      "start": { "value": "1968", "precision": "year" },
+      "importance": 5,
+      "confidence": "verified",
+      "tags": ["克拉克", "人工智慧", "平板"]
+    },
+    {
+      "id": "evt-neuromancer",
+      "track": "scifi",
+      "title": "《神經喚術士》：「網際空間」定型",
+      "description": "威廉·吉布森筆下的 cyberspace——「數十億合法操作者每日經歷的交感幻覺」——為尚未誕生的全球資訊網路提供了語言與想像。",
+      "start": { "value": "1984-07-01", "precision": "day", "raw": "1984/7/1" },
+      "importance": 5,
+      "confidence": "verified",
+      "tags": ["吉布森", "網路", "賽博龐克"],
+      "sources": [
+        { "title": "維基百科：神經喚術士", "url": "https://zh.wikipedia.org/wiki/神经漫游者" }
+      ]
+    },
+    {
+      "id": "evt-snow-crash",
+      "track": "scifi",
+      "title": "《潰雪》：「元宇宙」一詞誕生",
+      "description": "尼爾·史蒂文森描寫人們以虛擬化身在「Metaverse」中生活與交易，這個詞三十年後被科技產業直接拿去命名自己的未來。",
+      "start": { "value": "1992", "precision": "year" },
+      "importance": 4,
+      "confidence": "verified",
+      "tags": ["史蒂文森", "虛擬實境"]
+    }
+  ],
+
+  "display": {
+    "orientation": "horizontal",
+    "defaultScale": "year",
+    "range": { "start": "1860", "end": "2025" },
+    "collapseGaps": true
+  }
+}

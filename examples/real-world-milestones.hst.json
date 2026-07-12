@@ -1,0 +1,174 @@
+{
+  "hackstory": "0.1",
+  "id": "real-world-milestones",
+  "meta": {
+    "title": "現實世界的實現",
+    "subtitle": "預言成真的那一天",
+    "description": "整理 1950–2022 年間，科幻作品中的想像在現實世界實現的時刻。與「科幻小說的預言」時間軸疊加對比：每一筆事件的說明都寫著它回應的是哪部作品、隔了多少年。",
+    "authors": [
+      { "name": "HackStory 專案", "url": "https://g0v.tw" }
+    ],
+    "license": "CC-BY-4.0",
+    "language": "zh-TW",
+    "topics": ["科技史", "發明"],
+    "created": "2026-07-12",
+    "updated": "2026-07-12",
+    "revision": 1
+  },
+
+  "tracks": [
+    {
+      "id": "reality",
+      "title": "現實世界",
+      "description": "科技與社會事件實際發生的時間",
+      "color": "#0f766e",
+      "order": 1
+    }
+  ],
+
+  "events": [
+    {
+      "id": "evt-diners-club",
+      "track": "reality",
+      "title": "大來卡問世：第一張簽帳卡",
+      "description": "Diners Club 推出可在多家商店通用的簽帳卡。距離《回顧》（1888）寫下「credit card」一詞，過了 62 年。",
+      "start": { "value": "1950", "precision": "year" },
+      "importance": 3,
+      "confidence": "verified",
+      "tags": ["經濟"]
+    },
+    {
+      "id": "evt-nautilus",
+      "track": "reality",
+      "title": "核動力潛艇「鸚鵡螺號」下水",
+      "description": "美國海軍第一艘核動力潛艇 USS Nautilus 下水，艦名直接取自《海底兩萬里》（1870）中的潛艇——84 年後，尼莫船長的船有了真身。",
+      "start": { "value": "1954-01-21", "precision": "day", "raw": "1954/1/21" },
+      "importance": 4,
+      "confidence": "verified",
+      "tags": ["海洋", "軍事"]
+    },
+    {
+      "id": "evt-unimate",
+      "track": "reality",
+      "title": "第一台工業機器人 Unimate 上線",
+      "description": "Unimate 在通用汽車生產線開始搬運高溫鑄件。距離《R.U.R.》（1920）發明「robot」一詞，過了 41 年。",
+      "start": { "value": "1961", "precision": "year" },
+      "importance": 4,
+      "confidence": "verified",
+      "tags": ["機器人", "製造業"]
+    },
+    {
+      "id": "evt-syncom3",
+      "track": "reality",
+      "title": "Syncom 3 進入地球同步軌道",
+      "description": "第一顆真正的地球同步軌道衛星升空，並轉播了東京奧運。克拉克 1945 年在雜誌上畫的藍圖，19 年後掛上了天空。",
+      "start": { "value": "1964-08-19", "precision": "day", "raw": "1964/8/19" },
+      "importance": 4,
+      "confidence": "verified",
+      "tags": ["衛星", "通訊"]
+    },
+    {
+      "id": "evt-apollo11",
+      "track": "reality",
+      "title": "阿波羅 11 號登月",
+      "description": "人類首次踏上月球。火箭從佛羅里達發射——與《從地球到月球》（1865）寫的發射地相同，距離小說出版 104 年。",
+      "start": { "value": "1969-07-20", "precision": "day", "raw": "1969/7/20" },
+      "importance": 5,
+      "confidence": "verified",
+      "tags": ["太空", "NASA"],
+      "sources": [
+        { "title": "維基百科：阿波羅11號", "url": "https://zh.wikipedia.org/wiki/阿波罗11号" }
+      ]
+    },
+    {
+      "id": "evt-first-cellphone",
+      "track": "reality",
+      "title": "第一通手機電話撥出",
+      "description": "Motorola 工程師 Martin Cooper 在紐約街頭用手持行動電話撥出第一通電話。他日後表示，靈感來自《星艦迷航記》（1966）的通訊器。",
+      "start": { "value": "1973-04-03", "precision": "day", "raw": "1973/4/3" },
+      "importance": 4,
+      "confidence": "verified",
+      "tags": ["通訊", "行動電話"]
+    },
+    {
+      "id": "evt-ivf",
+      "track": "reality",
+      "title": "第一位試管嬰兒誕生",
+      "description": "Louise Brown 在英國誕生，體外受精從《美麗新世界》（1932）的反烏托邦設定，變成幫助無數家庭的醫療技術——相隔 46 年。",
+      "start": { "value": "1978-07-25", "precision": "day", "raw": "1978/7/25" },
+      "importance": 4,
+      "confidence": "verified",
+      "tags": ["生物科技", "醫療"]
+    },
+    {
+      "id": "evt-www",
+      "track": "reality",
+      "title": "全球資訊網對外公開",
+      "description": "Tim Berners-Lee 在新聞群組公開 World Wide Web 專案。《神經喚術士》（1984）筆下的網際空間，7 年後開始有了入口。",
+      "start": { "value": "1991-08-06", "precision": "day", "raw": "1991/8/6" },
+      "importance": 5,
+      "confidence": "verified",
+      "tags": ["網路", "WWW"],
+      "sources": [
+        { "title": "維基百科：全球資訊網", "url": "https://zh.wikipedia.org/wiki/万维网" }
+      ]
+    },
+    {
+      "id": "evt-ipad",
+      "track": "reality",
+      "title": "iPad 發表",
+      "description": "薄型平板電腦成為日常用品，與《2001：太空漫遊》（1968）裡太空人餐桌上的「新聞平板」相隔 42 年。",
+      "start": { "value": "2010-01-27", "precision": "day", "raw": "2010/1/27" },
+      "importance": 3,
+      "confidence": "verified",
+      "tags": ["平板", "蘋果"]
+    },
+    {
+      "id": "evt-snowden",
+      "track": "reality",
+      "title": "史諾登揭露大規模監控計畫",
+      "description": "前情報承包商員工史諾登揭露美國國安局的全球監控系統。《一九八四》（1949）出版 64 年後，「老大哥」從文學隱喻變成新聞頭條。",
+      "start": { "value": "2013-06-06", "precision": "day", "raw": "2013/6/6" },
+      "importance": 5,
+      "confidence": "verified",
+      "tags": ["監控", "隱私"]
+    },
+    {
+      "id": "evt-airpods",
+      "track": "reality",
+      "title": "AirPods 上市",
+      "description": "無線耳機成為街頭日常。《華氏451度》（1953）裡塞在耳中的「貝殼」，63 年後在現實世界大賣。",
+      "start": { "value": "2016-12-13", "precision": "day", "raw": "2016/12/13" },
+      "importance": 3,
+      "confidence": "verified",
+      "tags": ["媒體", "蘋果"]
+    },
+    {
+      "id": "evt-meta",
+      "track": "reality",
+      "title": "Facebook 改名 Meta",
+      "description": "全球最大社群平台以「元宇宙」重新命名自己——這個詞直接取自《潰雪》（1992），相隔 29 年。",
+      "start": { "value": "2021-10-28", "precision": "day", "raw": "2021/10/28" },
+      "importance": 3,
+      "confidence": "verified",
+      "tags": ["虛擬實境", "社群平台"]
+    },
+    {
+      "id": "evt-chatgpt",
+      "track": "reality",
+      "title": "ChatGPT 發布",
+      "description": "對話式人工智慧在兩個月內達到上億使用者，《2001：太空漫遊》（1968）中 HAL 9000 引發的想像與警惕，54 年後成為全球日常話題。",
+      "start": { "value": "2022-11-30", "precision": "day", "raw": "2022/11/30" },
+      "importance": 5,
+      "confidence": "verified",
+      "tags": ["人工智慧"]
+    }
+  ],
+
+  "display": {
+    "orientation": "horizontal",
+    "defaultScale": "year",
+    "range": { "start": "1860", "end": "2025" },
+    "collapseGaps": true
+  }
+}
