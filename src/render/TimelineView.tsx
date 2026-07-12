@@ -254,6 +254,7 @@ export function TimelineView({ sources, scaleRequest, onScaleModeChange }: Props
     <div ref={containerRef} className="h-full w-full select-none overflow-y-auto">
       <svg
         ref={svgRef}
+        id="hackstory-timeline-svg"
         width={width}
         height={layout.height}
         className="block cursor-grab bg-white active:cursor-grabbing"

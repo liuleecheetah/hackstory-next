@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="utf-8" />
+    <title>HackStory 嵌入測試頁</title>
+  </head>
+  <body style="font-family: system-ui, sans-serif; max-width: 1000px; margin: 2rem auto; line-height: 1.7">
+    <h1>假想的部落格文章</h1>
+    <p>
+      這是一個測試網頁，用來驗證 HackStory 的 iframe 嵌入功能（M5 驗收）。
+      下面這段時間軸就是用「匯出／分享」產生的嵌入碼貼進來的：
+    </p>
+
+    <!-- ↓ 這段就是 HackStory 產生的嵌入碼（開發中指向 localhost，部署後換成正式網址） -->
+    <iframe
+      src="http://localhost:5173/?embed=1"
+      width="960"
+      height="600"
+      style="border: 1px solid #ddd"
+      title="HackStory 時間軸"
+    ></iframe>
+
+    <p>時間軸下面繼續是文章的其他內容⋯⋯讀者可以直接在上面滾輪縮放、拖曳平移。</p>
+  </body>
+</html>

@@ -8,6 +8,7 @@ import { parseHstJson } from '../adapters/json'
 import { useLayers } from '../compose/useLayers'
 import type { ScaleMode, ScaleRequest } from '../render/TimelineView'
 import { TimelineView } from '../render/TimelineView'
+import { ExportDialog } from './ExportDialog'
 import { ImportDialog } from './ImportDialog'
 import { LayerPanel } from './LayerPanel'
 
@@ -32,6 +33,9 @@ export default function App() {
   const [scaleRequest, setScaleRequest] = useState<ScaleRequest | null>(null)
   const [activeMode, setActiveMode] = useState<ScaleMode>('year')
   const [importOpen, setImportOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
+  // 嵌入模式（?embed=1）：只顯示乾淨的時間軸，給 iframe 用
+  const isEmbed = new URLSearchParams(window.location.search).has('embed')
 
   // 使用者從檔案挑選器載入 .hst.json：好的變圖層，壞的把原因列出來（不靜默）
   const handleAddFiles = useCallback(
@@ -55,6 +59,29 @@ export default function App() {
     [addLayer],
   )
 
+  // 嵌入模式：無面板、無工具列的乾淨檢視（縮放平移仍可用）
+  if (isEmbed) {
+    return (
+      <div className="flex h-screen flex-col bg-white">
+        <div className="min-h-0 flex-1">
+          <TimelineView sources={visibleSources} />
+        </div>
+        <footer className="border-t border-slate-100 px-3 py-1 text-right text-xs text-slate-400">
+          以{' '}
+          <a
+            href={window.location.origin + window.location.pathname}
+            target="_blank"
+            rel="noreferrer"
+            className="underline hover:text-slate-600"
+          >
+            HackStory
+          </a>{' '}
+          製作
+        </footer>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-screen flex-col bg-white">
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-slate-200 px-4 py-2">
@@ -69,6 +96,13 @@ export default function App() {
           className="rounded-md border border-slate-300 px-3 py-1 text-sm text-slate-600 hover:bg-slate-100"
         >
           匯入 CSV / Google Sheet
+        </button>
+        <button
+          type="button"
+          onClick={() => setExportOpen(true)}
+          className="rounded-md border border-slate-300 px-3 py-1 text-sm text-slate-600 hover:bg-slate-100"
+        >
+          匯出／分享
         </button>
 
         {/* 尺度切換（像 Google 日曆） */}
@@ -119,6 +153,7 @@ export default function App() {
         onClose={() => setImportOpen(false)}
         onImport={addLayer}
       />
+      <ExportDialog open={exportOpen} onClose={() => setExportOpen(false)} layers={layers} />
     </div>
   )
 }
