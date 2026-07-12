@@ -1,0 +1,52 @@
+# 自動部署到 GitHub Pages：
+# 每次推送到 main 分支（在 GitHub Desktop 按 Push origin），
+# GitHub 會自動：安裝相依套件 → 跑測試 → 建置 → 發佈網站。
+# 測試不過就不會上線，這是安全網。
+name: 部署到 GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # 也可以在 GitHub 網站上手動觸發
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取得程式碼
+        uses: actions/checkout@v4
+      - name: 安裝 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: 安裝相依套件
+        run: npm ci
+      - name: 跑測試（不過就不部署）
+        run: npm test
+      - name: 建置
+        run: npm run build
+      - name: 上傳建置結果
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 發佈到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
