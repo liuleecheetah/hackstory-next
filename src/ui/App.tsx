@@ -35,6 +35,7 @@ export default function App() {
     removeLayer,
     toggleVisible,
     setColor,
+    setTrackColor,
     moveLayer,
     renameLayer,
     setKeyEvent,
@@ -234,6 +235,7 @@ export default function App() {
           onMove={moveLayer}
           onRemove={removeLayer}
           onColor={setColor}
+          onTrackColor={setTrackColor}
           onRename={renameLayer}
           onAddFiles={handleAddFiles}
         />

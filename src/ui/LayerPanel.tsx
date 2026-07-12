@@ -13,6 +13,8 @@ interface Props {
   onMove: (id: string, direction: -1 | 1) => void
   onRemove: (id: string) => void
   onColor: (id: string, color: string) => void
+  /** 更改多軸文件內單一軸線的顏色 */
+  onTrackColor: (layerId: string, trackId: string, color: string) => void
   onRename: (id: string, title: string) => void
   onAddFiles: (files: FileList) => void
 }
@@ -24,6 +26,7 @@ export function LayerPanel({
   onMove,
   onRemove,
   onColor,
+  onTrackColor,
   onRename,
   onAddFiles,
 }: Props) {
@@ -58,10 +61,8 @@ export function LayerPanel({
 
       <ul className="flex-1 overflow-y-auto">
         {layers.map((layer, i) => (
-          <li
-            key={layer.id}
-            className="flex items-center gap-2 border-b border-slate-100 px-3 py-2"
-          >
+          <li key={layer.id} className="border-b border-slate-100 px-3 py-2">
+            <div className="flex items-center gap-2">
             <input
               type="checkbox"
               checked={layer.visible}
@@ -69,13 +70,16 @@ export function LayerPanel({
               title={layer.visible ? '隱藏此圖層' : '顯示此圖層'}
               className="accent-slate-700"
             />
-            <input
-              type="color"
-              value={layer.color}
-              onChange={(e) => onColor(layer.id, e.target.value)}
-              title="更改圖層顏色"
-              className="h-6 w-7 shrink-0 cursor-pointer rounded border border-slate-300 bg-white p-0.5"
-            />
+            {/* 多軸文件以各軸線自己的顏色區分，圖層色塊改列在下方的軸線子列 */}
+            {layer.doc.tracks.length === 1 && (
+              <input
+                type="color"
+                value={layer.color}
+                onChange={(e) => onColor(layer.id, e.target.value)}
+                title="更改圖層顏色"
+                className="h-6 w-7 shrink-0 cursor-pointer rounded border border-slate-300 bg-white p-0.5"
+              />
+            )}
             <div className="min-w-0 flex-1">
               {editingId === layer.id ? (
                 <input
@@ -142,6 +146,30 @@ export function LayerPanel({
             >
               ✕
             </button>
+            </div>
+
+            {/* 多軸文件：列出每條軸線，各自可挑顏色 */}
+            {layer.doc.tracks.length > 1 && (
+              <ul className="mt-1">
+                {layer.doc.tracks.map((track) => (
+                  <li key={track.id} className="flex items-center gap-2 py-1 pl-6">
+                    <input
+                      type="color"
+                      value={track.color ?? '#64748b'}
+                      onChange={(e) => onTrackColor(layer.id, track.id, e.target.value)}
+                      title={`更改「${track.title}」軸線的顏色`}
+                      className="h-5 w-6 shrink-0 cursor-pointer rounded border border-slate-300 bg-white p-0.5"
+                    />
+                    <span className="min-w-0 flex-1 truncate text-xs text-slate-600">
+                      {track.title}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {layer.doc.events.filter((ev) => ev.track === track.id).length} 筆
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
         ))}
         {layers.length === 0 && (

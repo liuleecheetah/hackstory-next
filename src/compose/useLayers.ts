@@ -53,6 +53,20 @@ export function useLayers(initialDocs: TimelineDocument[]) {
   }, [])
 
   /**
+   * 更改文件內單一軸線的顏色（多軸文件用）。
+   * 改的是檔案本身的 tracks[].color，匯出時會一併保存。
+   */
+  const setTrackColor = useCallback((layerId: string, trackId: string, color: string) => {
+    setLayers((prev) =>
+      prev.map((l) => {
+        if (l.id !== layerId) return l
+        const tracks = l.doc.tracks.map((t) => (t.id === trackId ? { ...t, color } : t))
+        return { ...l, doc: { ...l.doc, tracks } }
+      }),
+    )
+  }, [])
+
+  /**
    * 標示／取消關鍵事件：關鍵事件記成 importance 5（沿用 SPEC 既有欄位，檔案格式不變），
    * 在時間軸上會放大顯示。匯出時會一併保存。
    */
@@ -109,6 +123,7 @@ export function useLayers(initialDocs: TimelineDocument[]) {
     removeLayer,
     toggleVisible,
     setColor,
+    setTrackColor,
     moveLayer,
     renameLayer,
     setKeyEvent,
