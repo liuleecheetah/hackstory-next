@@ -1,0 +1,75 @@
+{
+  "hackstory": "0.1",
+  "id": "my-first-timeline",
+  "meta": {
+    "title": "我的第一條時間軸（改成你的標題）",
+    "subtitle": "副標題可以省略",
+    "description": "把這份範本另存新檔（副檔名 .hst.json），替換成你自己的內容，再用左側面板「＋載入 .hst.json」讀進 HackStory。",
+    "authors": [
+      { "name": "你的名字" }
+    ],
+    "license": "CC-BY-4.0",
+    "language": "zh-TW",
+    "topics": ["範本"],
+    "created": "2026-07-12",
+    "updated": "2026-07-12",
+    "revision": 1
+  },
+
+  "tracks": [
+    { "id": "main", "title": "主線", "color": "#3b6ea5", "order": 1 },
+    { "id": "side", "title": "支線", "color": "#d97706", "order": 2 }
+  ],
+
+  "events": [
+    {
+      "id": "evt-001",
+      "track": "main",
+      "title": "第一個事件（點開會看到下面的說明）",
+      "description": "完整說明寫在這裡。sources 裡的網址在詳情卡上會變成可點的連結。",
+      "start": { "value": "2024-01-15", "precision": "day" },
+      "confidence": "verified",
+      "tags": ["範例"],
+      "sources": [
+        { "title": "來源名稱", "url": "https://example.com" }
+      ]
+    },
+    {
+      "id": "evt-002",
+      "track": "main",
+      "title": "關鍵事件（importance 填 5 會在軸上放大顯示）",
+      "start": { "value": "2024-06-10", "precision": "day" },
+      "importance": 5,
+      "confidence": "reported"
+    },
+    {
+      "id": "evt-003",
+      "track": "side",
+      "title": "持續一段時間的事件（有 end 就畫成長條）",
+      "start": { "value": "2024-03-01", "precision": "day" },
+      "end": { "value": "2024-03-20", "precision": "day" }
+    },
+    {
+      "id": "evt-004",
+      "track": "side",
+      "title": "只知道月份的事件（precision 誠實標示模糊時間）",
+      "start": { "value": "2024-08", "precision": "month", "raw": "2024年8月" }
+    }
+  ],
+
+  "relations": [
+    {
+      "from": "evt-002",
+      "to": "evt-001",
+      "type": "derives_from",
+      "label": "這行字會顯示在兩個事件之間的關係線上"
+    }
+  ],
+
+  "display": {
+    "orientation": "horizontal",
+    "defaultScale": "year",
+    "range": { "start": "2024", "end": "2025" },
+    "collapseGaps": true
+  }
+}
