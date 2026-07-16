@@ -67,6 +67,10 @@ export default function App() {
     removeEvent,
     addRelation,
     removeRelation,
+    createBlankLayer,
+    addTrack,
+    renameTrack,
+    removeTrack,
   } = useLayers(INITIAL_DOCS)
   const [loadErrors, setLoadErrors] = useState<string[]>(INITIAL_ERRORS)
   const [scaleRequest, setScaleRequest] = useState<ScaleRequest | null>(null)
@@ -237,6 +241,15 @@ export default function App() {
       removeRelation(selection.sourceId, index)
     },
     [selection, removeRelation],
+  )
+
+  // 新增軸線：預設名稱依現有軸線數編號，之後可在面板 ✎ 改名
+  const handleAddTrack = useCallback(
+    (layerId: string) => {
+      const layer = layers.find((l) => l.id === layerId)
+      addTrack(layerId, `新軸線 ${(layer?.doc.tracks.length ?? 0) + 1}`)
+    },
+    [layers, addTrack],
   )
 
   // 在軸線空白處點兩下 → 以該位置的日期開「新增事件」表單
@@ -541,6 +554,10 @@ export default function App() {
           onTrackColor={setTrackColor}
           onRename={renameLayer}
           onAddFiles={handleAddFiles}
+          onCreateBlank={createBlankLayer}
+          onAddTrack={handleAddTrack}
+          onRenameTrack={renameTrack}
+          onRemoveTrack={removeTrack}
         />
         <div className="min-w-0 flex-1">
           <TimelineView

@@ -4,7 +4,7 @@
 // 鐵律：只能呼叫比它低的層（render、adapters、core）。
 
 import { useCallback, useMemo, useRef, useState } from 'react'
-import type { HstEvent, Relation, TimelineDocument } from '../core'
+import type { HstEvent, Relation, TimelineDocument, Track } from '../core'
 
 export interface Layer {
   /** 執行期識別碼（同一份文件可被載入多次，所以不能直接用文件 id） */
@@ -85,6 +85,62 @@ export function useLayers(initialDocs: TimelineDocument[]) {
           return next
         })
         return { ...l, doc: { ...l.doc, events } }
+      }),
+    )
+  }, [])
+
+  /** 建立一份全新的空白時間軸（一條「主線」軸、零事件），作為新圖層 */
+  const createBlankLayer = useCallback(() => {
+    const today = new Date().toISOString().slice(0, 10)
+    const doc: TimelineDocument = {
+      hackstory: '0.2',
+      id: `timeline-${Date.now().toString(36)}`,
+      meta: {
+        title: '新的時間軸',
+        license: 'CC-BY-4.0',
+        language: 'zh-TW',
+        created: today,
+        updated: today,
+        revision: 1,
+      },
+      tracks: [{ id: 'track-1', title: '主線', order: 1 }],
+      events: [],
+    }
+    setLayers((prev) => [...prev, makeLayer(doc)])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  /** 新增一條軸線到指定圖層 */
+  const addTrack = useCallback((layerId: string, title: string) => {
+    setLayers((prev) =>
+      prev.map((l) => {
+        if (l.id !== layerId) return l
+        const order = Math.max(0, ...l.doc.tracks.map((t) => t.order ?? 0)) + 1
+        const track: Track = { id: `track-${Date.now().toString(36)}`, title, order }
+        return { ...l, doc: { ...l.doc, tracks: [...l.doc.tracks, track] } }
+      }),
+    )
+  }, [])
+
+  /** 重新命名軸線 */
+  const renameTrack = useCallback((layerId: string, trackId: string, title: string) => {
+    setLayers((prev) =>
+      prev.map((l) => {
+        if (l.id !== layerId) return l
+        const tracks = l.doc.tracks.map((t) => (t.id === trackId ? { ...t, title } : t))
+        return { ...l, doc: { ...l.doc, tracks } }
+      }),
+    )
+  }, [])
+
+  /** 刪除軸線（呼叫端須先確認軸線上沒有事件、且不是最後一條） */
+  const removeTrack = useCallback((layerId: string, trackId: string) => {
+    setLayers((prev) =>
+      prev.map((l) => {
+        if (l.id !== layerId) return l
+        const tracks = l.doc.tracks.filter((t) => t.id !== trackId)
+        if (tracks.length === 0) return l // 保險：至少留一條（SPEC 要求）
+        return { ...l, doc: { ...l.doc, tracks } }
       }),
     )
   }, [])
@@ -188,5 +244,9 @@ export function useLayers(initialDocs: TimelineDocument[]) {
     removeEvent,
     addRelation,
     removeRelation,
+    createBlankLayer,
+    addTrack,
+    renameTrack,
+    removeTrack,
   }
 }
