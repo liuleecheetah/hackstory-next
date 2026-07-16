@@ -5,8 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import rawScifiVsReality from '../../examples/scifi-vs-reality.hst.json?raw'
 import { parseHstJson } from '../adapters/json'
 import { loadFromUrl } from '../adapters/remote'
-import type { HstEvent, Relation, RelationType } from '../core'
-import { parseDateTime } from '../core'
+import type { HstEvent, Relation, RelationType, RelativeAnchor } from '../core'
+import { isAbsolute, parseDateTime } from '../core'
 import { useLayers } from '../compose/useLayers'
 import type {
   EventSelection,
@@ -264,16 +264,45 @@ export default function App() {
     setCreateMode(true)
   }, [])
 
+  // 依事件目前的 start 重新產生「在Ａ之後、在Ｂ之前」的說明（編輯後要算新鮮的）
+  const relativeNoteFor = useCallback(
+    (sourceId: string, ev: HstEvent): string | null => {
+      if (isAbsolute(ev.start)) return null
+      const layer = layers.find((l) => l.id === sourceId)
+      const rel = (ev.start as RelativeAnchor).relative
+      const titleOf = (id: string) => layer?.doc.events.find((e) => e.id === id)?.title ?? id
+      const parts: string[] = []
+      if (rel.after) parts.push(`在「${titleOf(rel.after)}」之後`)
+      if (rel.before) parts.push(`在「${titleOf(rel.before)}」之前`)
+      return parts.join('、')
+    },
+    [layers],
+  )
+
   // 新增模式的「儲存」：把草稿加進圖層，然後轉成一般選取狀態
   const handleCreateSave = useCallback(
     (next: HstEvent) => {
       if (!selection) return
       addEvent(selection.sourceId, next)
-      setSelection({ ...selection, key: `${selection.sourceId}/${next.id}`, event: next })
+      setSelection({
+        ...selection,
+        key: `${selection.sourceId}/${next.id}`,
+        event: next,
+        relativeNote: relativeNoteFor(selection.sourceId, next),
+      })
       setCreateMode(false)
     },
-    [selection, addEvent],
+    [selection, addEvent, relativeNoteFor],
   )
+
+  // 相對時間下拉選單的選項：同一份檔案內、排除自己的所有事件
+  const eventOptions = useMemo(() => {
+    if (!selection) return []
+    const layer = layers.find((l) => l.id === selection.sourceId)
+    return (layer?.doc.events ?? [])
+      .filter((e) => e.id !== selection.event.id)
+      .map((e) => ({ id: e.id, title: e.title }))
+  }, [selection, layers])
 
   // 詳情卡上的「標示為關鍵事件」開關：更新圖層資料，也同步更新卡片顯示。
   // 注意：副作用（setKeyEvent 等）不能放進 setSelection 的更新函式裡——
@@ -299,11 +328,10 @@ export default function App() {
       setSelection({
         ...selection,
         event: next,
-        // 改成絕對時間後不再是推估
-        relativeNote: 'relative' in (next.start as object) ? selection.relativeNote : null,
+        relativeNote: relativeNoteFor(selection.sourceId, next),
       })
     },
-    [selection, replaceEvent],
+    [selection, replaceEvent, relativeNoteFor],
   )
 
   // 詳情卡的「刪除」：移除事件（連同指向它的關係線）並清除選取
@@ -551,6 +579,7 @@ export default function App() {
           relations={createMode ? [] : selectedRelations}
           onRemoveRelation={createMode ? undefined : handleRemoveRelation}
           onStartLink={createMode ? undefined : handleStartLink}
+          eventOptions={eventOptions}
         />
       )}
 

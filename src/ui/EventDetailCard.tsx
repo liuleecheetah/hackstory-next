@@ -5,7 +5,7 @@
 
 import type { CSSProperties } from 'react'
 import { useEffect, useState } from 'react'
-import type { AbsoluteTimePoint, Confidence, HstEvent } from '../core'
+import type { AbsoluteTimePoint, Confidence, HstEvent, RelativeAnchor } from '../core'
 import { isAbsolute, parseDateTime } from '../core'
 import type { EventSelection } from '../render/TimelineView'
 import { formatPointLong } from '../render/timeScale'
@@ -26,6 +26,8 @@ interface Props {
   onRemoveRelation?: (index: number) => void
   /** 進入「連結模式」：點選另一個事件建立關係 */
   onStartLink?: () => void
+  /** 相對時間下拉選單的選項（同檔案內、排除此事件），由 App 傳入 */
+  eventOptions?: Array<{ id: string; title: string }>
 }
 
 export interface RelationInfo {
@@ -55,6 +57,10 @@ interface FormState {
   title: string
   startRaw: string
   endRaw: string
+  /** 相對時間模式：不填日期，改選「之後／之前」的參考事件 */
+  relativeMode: boolean
+  afterId: string
+  beforeId: string
   description: string
   location: string
   tags: string
@@ -71,6 +77,7 @@ export function EventDetailCard({
   relations = [],
   onRemoveRelation,
   onStartLink,
+  eventOptions = [],
 }: Props) {
   const { event, docTitle, trackTitle, color, clientX, clientY } = selection
 
@@ -86,6 +93,9 @@ export function EventDetailCard({
         title: event.title,
         startRaw: isAbsolute(event.start) ? (event.start.raw ?? event.start.value) : '',
         endRaw: '',
+        relativeMode: false,
+        afterId: '',
+        beforeId: '',
         description: '',
         location: '',
         tags: '',
@@ -125,6 +135,7 @@ export function EventDetailCard({
   const isKey = (event.importance ?? 0) >= 5
 
   const startEdit = () => {
+    const relative = isAbsolute(event.start) ? null : (event.start as RelativeAnchor).relative
     setForm({
       title: event.title,
       startRaw: isAbsolute(event.start) ? (event.start.raw ?? event.start.value) : '',
@@ -134,6 +145,9 @@ export function EventDetailCard({
           : event.ongoing
             ? '至今'
             : '',
+      relativeMode: relative !== null,
+      afterId: relative?.after ?? '',
+      beforeId: relative?.before ?? '',
       description: event.description ?? '',
       location: event.location?.name ?? '',
       tags: (event.tags ?? []).join(', '),
@@ -151,16 +165,32 @@ export function EventDetailCard({
       return
     }
 
-    // 開始日期：留空時，相對時間事件保持原本的先後設定；絕對時間事件必填
     let start = event.start
-    let derivedEnd: AbsoluteTimePoint | undefined
-    const startRaw = form.startRaw.trim()
-    if (startRaw === '') {
-      if (isAbsolute(event.start)) {
-        setFormError('開始日期不能空白（只有相對時間事件可以留空）')
+    let end: AbsoluteTimePoint | undefined
+    let ongoing = false
+
+    if (form.relativeMode) {
+      // 相對時間：不填日期，改用「之後／之前」的參考事件（至少一個）
+      const after = form.afterId || undefined
+      const before = form.beforeId || undefined
+      if (!after && !before) {
+        setFormError('相對時間至少要選「之後」或「之前」其中一個事件')
         return
       }
+      if (after && before && after === before) {
+        setFormError('「之後」與「之前」不能是同一個事件')
+        return
+      }
+      start = { relative: { ...(after ? { after } : {}), ...(before ? { before } : {}) } }
+      // 相對時間事件是點事件：不帶結束時間與進行中
     } else {
+      // 絕對時間：開始日期必填
+      let derivedEnd: AbsoluteTimePoint | undefined
+      const startRaw = form.startRaw.trim()
+      if (startRaw === '') {
+        setFormError('開始日期不能空白（不知道日期的話，勾選「改用相對時間」）')
+        return
+      }
       const parsed = parseDateTime(startRaw)
       if (!parsed.ok) {
         setFormError(`開始日期：${parsed.reason}`)
@@ -168,23 +198,21 @@ export function EventDetailCard({
       }
       start = parsed.start
       derivedEnd = parsed.end // 例如「2016/11/24 09:00-18:00」一格寫完起訖
-    }
 
-    // 結束日期：空白＝無、「至今」＝進行中、其他照日期解析
-    let end: AbsoluteTimePoint | undefined
-    let ongoing = false
-    const endRaw = form.endRaw.trim()
-    if (RE_ONGOING.test(endRaw)) {
-      ongoing = true
-    } else if (endRaw !== '') {
-      const parsedEnd = parseDateTime(endRaw)
-      if (!parsedEnd.ok) {
-        setFormError(`結束日期：${parsedEnd.reason}`)
-        return
+      // 結束日期：空白＝無、「至今」＝進行中、其他照日期解析
+      const endRaw = form.endRaw.trim()
+      if (RE_ONGOING.test(endRaw)) {
+        ongoing = true
+      } else if (endRaw !== '') {
+        const parsedEnd = parseDateTime(endRaw)
+        if (!parsedEnd.ok) {
+          setFormError(`結束日期：${parsedEnd.reason}`)
+          return
+        }
+        end = parsedEnd.start
+      } else if (derivedEnd) {
+        end = derivedEnd
       }
-      end = parsedEnd.start
-    } else if (derivedEnd) {
-      end = derivedEnd
     }
 
     const next: HstEvent = { ...event, title, start }
@@ -213,7 +241,7 @@ export function EventDetailCard({
     setFormError(null)
   }
 
-  const setField = (field: keyof FormState, value: string) =>
+  const setField = (field: Exclude<keyof FormState, 'relativeMode'>, value: string) =>
     setForm((prev) => (prev ? { ...prev, [field]: value } : prev))
 
   const inputCls = 'w-full rounded border border-slate-300 px-2 py-1 text-sm'
@@ -254,28 +282,75 @@ export function EventDetailCard({
               className={inputCls}
             />
           </label>
-          <div className="flex gap-2">
-            <label className={`${labelCls} flex-1`}>
-              開始日期
-              <input
-                type="text"
-                value={form.startRaw}
-                onChange={(e) => setField('startRaw', e.target.value)}
-                placeholder={isAbsolute(event.start) ? '例：2017/5/24' : '留空＝保持相對時間'}
-                className={inputCls}
-              />
-            </label>
-            <label className={`${labelCls} flex-1`}>
-              結束日期
-              <input
-                type="text"
-                value={form.endRaw}
-                onChange={(e) => setField('endRaw', e.target.value)}
-                placeholder="空白＝無；至今＝進行中"
-                className={inputCls}
-              />
-            </label>
-          </div>
+          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-600">
+            <input
+              type="checkbox"
+              checked={form.relativeMode}
+              onChange={(e) =>
+                setForm((prev) => (prev ? { ...prev, relativeMode: e.target.checked } : prev))
+              }
+              className="accent-slate-700"
+            />
+            改用相對時間（不知道日期，只知道先後順序）
+          </label>
+
+          {form.relativeMode ? (
+            <div className="flex gap-2">
+              <label className={`${labelCls} flex-1`}>
+                在這個事件之後
+                <select
+                  value={form.afterId}
+                  onChange={(e) => setField('afterId', e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">（不設定）</option>
+                  {eventOptions.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.title.length > 24 ? o.title.slice(0, 24) + '…' : o.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className={`${labelCls} flex-1`}>
+                在這個事件之前
+                <select
+                  value={form.beforeId}
+                  onChange={(e) => setField('beforeId', e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">（不設定）</option>
+                  {eventOptions.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.title.length > 24 ? o.title.slice(0, 24) + '…' : o.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <label className={`${labelCls} flex-1`}>
+                開始日期
+                <input
+                  type="text"
+                  value={form.startRaw}
+                  onChange={(e) => setField('startRaw', e.target.value)}
+                  placeholder="例：2017/5/24"
+                  className={inputCls}
+                />
+              </label>
+              <label className={`${labelCls} flex-1`}>
+                結束日期
+                <input
+                  type="text"
+                  value={form.endRaw}
+                  onChange={(e) => setField('endRaw', e.target.value)}
+                  placeholder="空白＝無；至今＝進行中"
+                  className={inputCls}
+                />
+              </label>
+            </div>
+          )}
           <label className={labelCls}>
             說明
             <textarea
