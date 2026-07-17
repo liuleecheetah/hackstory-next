@@ -35,21 +35,75 @@ export function useLayers(initialDocs: TimelineDocument[]) {
   // initialDocs 只在第一次渲染時使用
   const [layers, setLayers] = useState<Layer[]>(() => initialDocs.map(makeLayer))
 
+  // ---- 復原／重做 ----
+  // 所有修改都經過 mutate：把「修改前」的狀態推進歷史（上限 50 步）。
+  // 歷史操作刻意放在 setLayers 的更新函式外面——
+  // React 開發模式會把更新函式執行兩次，副作用寫在裡面會重複。
+  const layersRef = useRef(layers)
+  layersRef.current = layers
+  const pastRef = useRef<Layer[][]>([])
+  const futureRef = useRef<Layer[][]>([])
+  const [history, setHistory] = useState({ canUndo: false, canRedo: false })
+
+  const mutate = useCallback((updater: (prev: Layer[]) => Layer[]) => {
+    const prev = layersRef.current
+    const next = updater(prev)
+    if (next === prev) return
+    pastRef.current = [...pastRef.current.slice(-49), prev]
+    futureRef.current = []
+    layersRef.current = next
+    setLayers(next)
+    setHistory({ canUndo: true, canRedo: false })
+  }, [])
+
+  const undo = useCallback(() => {
+    if (pastRef.current.length === 0) return
+    const prev = pastRef.current[pastRef.current.length - 1]
+    pastRef.current = pastRef.current.slice(0, -1)
+    futureRef.current = [...futureRef.current, layersRef.current]
+    layersRef.current = prev
+    setLayers(prev)
+    setHistory({ canUndo: pastRef.current.length > 0, canRedo: true })
+  }, [])
+
+  const redo = useCallback(() => {
+    if (futureRef.current.length === 0) return
+    const next = futureRef.current[futureRef.current.length - 1]
+    futureRef.current = futureRef.current.slice(0, -1)
+    pastRef.current = [...pastRef.current, layersRef.current]
+    layersRef.current = next
+    setLayers(next)
+    setHistory({ canUndo: true, canRedo: futureRef.current.length > 0 })
+  }, [])
+
+  /** 以瀏覽器草稿整批還原圖層（這個動作本身也可以復原） */
+  const restoreLayers = useCallback(
+    (saved: Array<Pick<Layer, 'doc' | 'color' | 'visible'>>) => {
+      mutate(() =>
+        saved.map((s) => {
+          const n = counter.current++
+          return { id: `layer-${n}-${s.doc.id}`, doc: s.doc, color: s.color, visible: s.visible }
+        }),
+      )
+    },
+    [mutate],
+  )
+
   const addLayer = useCallback((doc: TimelineDocument) => {
-    setLayers((prev) => [...prev, makeLayer(doc)])
+    mutate((prev) => [...prev, makeLayer(doc)])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const removeLayer = useCallback((id: string) => {
-    setLayers((prev) => prev.filter((l) => l.id !== id))
+    mutate((prev) => prev.filter((l) => l.id !== id))
   }, [])
 
   const toggleVisible = useCallback((id: string) => {
-    setLayers((prev) => prev.map((l) => (l.id === id ? { ...l, visible: !l.visible } : l)))
+    mutate((prev) => prev.map((l) => (l.id === id ? { ...l, visible: !l.visible } : l)))
   }, [])
 
   const setColor = useCallback((id: string, color: string) => {
-    setLayers((prev) => prev.map((l) => (l.id === id ? { ...l, color } : l)))
+    mutate((prev) => prev.map((l) => (l.id === id ? { ...l, color } : l)))
   }, [])
 
   /**
@@ -57,7 +111,7 @@ export function useLayers(initialDocs: TimelineDocument[]) {
    * 改的是檔案本身的 tracks[].color，匯出時會一併保存。
    */
   const setTrackColor = useCallback((layerId: string, trackId: string, color: string) => {
-    setLayers((prev) =>
+    mutate((prev) =>
       prev.map((l) => {
         if (l.id !== layerId) return l
         const tracks = l.doc.tracks.map((t) => (t.id === trackId ? { ...t, color } : t))
@@ -71,7 +125,7 @@ export function useLayers(initialDocs: TimelineDocument[]) {
    * 在時間軸上會放大顯示。匯出時會一併保存。
    */
   const setKeyEvent = useCallback((layerId: string, eventId: string, key: boolean) => {
-    setLayers((prev) =>
+    mutate((prev) =>
       prev.map((l) => {
         if (l.id !== layerId) return l
         const events = l.doc.events.map((ev) => {
@@ -106,13 +160,13 @@ export function useLayers(initialDocs: TimelineDocument[]) {
       tracks: [{ id: 'track-1', title: '主線', order: 1 }],
       events: [],
     }
-    setLayers((prev) => [...prev, makeLayer(doc)])
+    mutate((prev) => [...prev, makeLayer(doc)])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   /** 新增一條軸線到指定圖層 */
   const addTrack = useCallback((layerId: string, title: string) => {
-    setLayers((prev) =>
+    mutate((prev) =>
       prev.map((l) => {
         if (l.id !== layerId) return l
         const order = Math.max(0, ...l.doc.tracks.map((t) => t.order ?? 0)) + 1
@@ -124,7 +178,7 @@ export function useLayers(initialDocs: TimelineDocument[]) {
 
   /** 重新命名軸線 */
   const renameTrack = useCallback((layerId: string, trackId: string, title: string) => {
-    setLayers((prev) =>
+    mutate((prev) =>
       prev.map((l) => {
         if (l.id !== layerId) return l
         const tracks = l.doc.tracks.map((t) => (t.id === trackId ? { ...t, title } : t))
@@ -135,7 +189,7 @@ export function useLayers(initialDocs: TimelineDocument[]) {
 
   /** 刪除軸線（呼叫端須先確認軸線上沒有事件、且不是最後一條） */
   const removeTrack = useCallback((layerId: string, trackId: string) => {
-    setLayers((prev) =>
+    mutate((prev) =>
       prev.map((l) => {
         if (l.id !== layerId) return l
         const tracks = l.doc.tracks.filter((t) => t.id !== trackId)
@@ -147,7 +201,7 @@ export function useLayers(initialDocs: TimelineDocument[]) {
 
   /** 新增事件到指定圖層（id 由呼叫端產生）。匯出時會保存 */
   const addEvent = useCallback((layerId: string, event: HstEvent) => {
-    setLayers((prev) =>
+    mutate((prev) =>
       prev.map((l) =>
         l.id === layerId ? { ...l, doc: { ...l.doc, events: [...l.doc.events, event] } } : l,
       ),
@@ -156,7 +210,7 @@ export function useLayers(initialDocs: TimelineDocument[]) {
 
   /** 以編輯後的事件整筆取代（id 與 track 由呼叫端保留）。匯出時會保存 */
   const replaceEvent = useCallback((layerId: string, eventId: string, next: HstEvent) => {
-    setLayers((prev) =>
+    mutate((prev) =>
       prev.map((l) => {
         if (l.id !== layerId) return l
         const events = l.doc.events.map((ev) => (ev.id === eventId ? next : ev))
@@ -167,7 +221,7 @@ export function useLayers(initialDocs: TimelineDocument[]) {
 
   /** 刪除事件。指向它的關係線一併移除（否則檔案匯出後會驗證失敗） */
   const removeEvent = useCallback((layerId: string, eventId: string) => {
-    setLayers((prev) =>
+    mutate((prev) =>
       prev.map((l) => {
         if (l.id !== layerId) return l
         const events = l.doc.events.filter((ev) => ev.id !== eventId)
@@ -181,7 +235,7 @@ export function useLayers(initialDocs: TimelineDocument[]) {
 
   /** 新增一條事件關係（畫面上的關係編輯器用）。匯出時會保存 */
   const addRelation = useCallback((layerId: string, relation: Relation) => {
-    setLayers((prev) =>
+    mutate((prev) =>
       prev.map((l) =>
         l.id === layerId
           ? { ...l, doc: { ...l.doc, relations: [...(l.doc.relations ?? []), relation] } }
@@ -192,7 +246,7 @@ export function useLayers(initialDocs: TimelineDocument[]) {
 
   /** 依索引刪除一條事件關係 */
   const removeRelation = useCallback((layerId: string, index: number) => {
-    setLayers((prev) =>
+    mutate((prev) =>
       prev.map((l) => {
         if (l.id !== layerId) return l
         const relations = (l.doc.relations ?? []).filter((_, i) => i !== index)
@@ -203,7 +257,7 @@ export function useLayers(initialDocs: TimelineDocument[]) {
 
   /** 重新命名圖層：改的是文件的標題（meta.title），匯出時也會帶著新名字 */
   const renameLayer = useCallback((id: string, title: string) => {
-    setLayers((prev) =>
+    mutate((prev) =>
       prev.map((l) =>
         l.id === id ? { ...l, doc: { ...l.doc, meta: { ...l.doc.meta, title } } } : l,
       ),
@@ -212,7 +266,7 @@ export function useLayers(initialDocs: TimelineDocument[]) {
 
   /** 往上（-1）或往下（+1）移動一格。圖層順序 = 時間軸上軸線的排列順序 */
   const moveLayer = useCallback((id: string, direction: -1 | 1) => {
-    setLayers((prev) => {
+    mutate((prev) => {
       const i = prev.findIndex((l) => l.id === id)
       const j = i + direction
       if (i < 0 || j < 0 || j >= prev.length) return prev
@@ -248,5 +302,10 @@ export function useLayers(initialDocs: TimelineDocument[]) {
     addTrack,
     renameTrack,
     removeTrack,
+    undo,
+    redo,
+    canUndo: history.canUndo,
+    canRedo: history.canRedo,
+    restoreLayers,
   }
 }

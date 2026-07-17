@@ -16,12 +16,14 @@ interface Props {
   open: boolean
   onClose: () => void
   layers: Layer[]
+  /** 使用者下載了 .hst.json（用來清掉「尚未下載」的提示） */
+  onDownloaded?: () => void
 }
 
 /** 畫面上時間軸 SVG 的 id（render 層掛的） */
 const SVG_ID = 'hackstory-timeline-svg'
 
-export function ExportDialog({ open, onClose, layers }: Props) {
+export function ExportDialog({ open, onClose, layers, onDownloaded }: Props) {
   const [message, setMessage] = useState<string | null>(null)
   // 分享連結：使用者把 .hst.json 放上公開網址（或用公開試算表）後貼進來
   const [shareSrc, setShareSrc] = useState('')
@@ -117,6 +119,7 @@ export function ExportDialog({ open, onClose, layers }: Props) {
                         'application/json',
                       )
                       say(`已下載 ${layer.doc.id}.hst.json`)
+                      onDownloaded?.()
                     }}
                     className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
                   >

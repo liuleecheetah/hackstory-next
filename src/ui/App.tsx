@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import rawScifiVsReality from '../../examples/scifi-vs-reality.hst.json?raw'
 import { parseHstJson } from '../adapters/json'
 import { loadFromUrl } from '../adapters/remote'
-import type { HstEvent, Relation, RelationType, RelativeAnchor } from '../core'
+import type { HstEvent, Relation, RelationType, RelativeAnchor, TimelineDocument } from '../core'
 import { isAbsolute, parseDateTime } from '../core'
 import { useLayers } from '../compose/useLayers'
 import type {
@@ -41,6 +41,40 @@ const SCALE_LABELS: Record<ScaleMode, string> = {
 // 分享連結：網址帶 ?src=公開網址 時，載入分享的時間軸（可多個），不載入預設範例
 const SHARED_SRC_URLS = new URLSearchParams(window.location.search).getAll('src')
 
+// 瀏覽器草稿（防止編輯成果遺失）
+const DRAFT_KEY = 'hackstory-draft-v1'
+
+interface SavedDraft {
+  savedAt: string
+  layers: Array<{ doc: TimelineDocument; color: string; visible: boolean }>
+}
+
+/** 讀取瀏覽器裡的草稿；分享檢視與嵌入模式不啟用 */
+function readSavedDraft(): SavedDraft | null {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if (params.has('embed') || SHARED_SRC_URLS.length > 0) return null
+    const raw = localStorage.getItem(DRAFT_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as SavedDraft
+    if (!Array.isArray(parsed?.layers) || parsed.layers.length === 0) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+/** 「X 分鐘前」的口語時間 */
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime()
+  const min = Math.round(ms / 60_000)
+  if (min < 1) return '剛剛'
+  if (min < 60) return `${min} 分鐘前`
+  const hr = Math.round(min / 60)
+  if (hr < 24) return `${hr} 小時前`
+  return `${Math.round(hr / 24)} 天前`
+}
+
 // 預載的範例（模組載入時解析一次）：科幻與現實兩條軸在同一份文件裡，
 // 事件之間的 relations 會畫成關係線
 const INITIAL_RESULTS =
@@ -71,6 +105,11 @@ export default function App() {
     addTrack,
     renameTrack,
     removeTrack,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    restoreLayers,
   } = useLayers(INITIAL_DOCS)
   const [loadErrors, setLoadErrors] = useState<string[]>(INITIAL_ERRORS)
   const [scaleRequest, setScaleRequest] = useState<ScaleRequest | null>(null)
@@ -243,6 +282,44 @@ export default function App() {
     [selection, removeRelation],
   )
 
+  // 復原／重做：圖層資料回到上一步；選取與進行中的操作一併清掉，避免指向已不存在的事件
+  const clearInteraction = useCallback(() => {
+    setSelection(null)
+    setCardVisible(false)
+    setCreateMode(false)
+    setLinking(null)
+    setRelationDraft(null)
+  }, [])
+
+  const handleUndo = useCallback(() => {
+    undo()
+    clearInteraction()
+  }, [undo, clearInteraction])
+
+  const handleRedo = useCallback(() => {
+    redo()
+    clearInteraction()
+  }, [redo, clearInteraction])
+
+  // Ctrl/Cmd+Z 復原、Ctrl/Cmd+Shift+Z 或 Ctrl+Y 重做（輸入框內打字不攔截）
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return
+      const key = e.key.toLowerCase()
+      if (key !== 'z' && key !== 'y') return
+      const target = e.target as HTMLElement
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return
+      e.preventDefault()
+      if (key === 'y' || (key === 'z' && e.shiftKey)) {
+        handleRedo()
+      } else {
+        handleUndo()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [handleUndo, handleRedo])
+
   // 新增軸線：預設名稱依現有軸線數編號，之後可在面板 ✎ 改名
   const handleAddTrack = useCallback(
     (layerId: string) => {
@@ -391,6 +468,48 @@ export default function App() {
   // 嵌入模式（?embed=1）：只顯示乾淨的時間軸，給 iframe 用
   const isEmbed = new URLSearchParams(window.location.search).has('embed')
 
+  // ---- 防止編輯成果遺失 ----
+  // 開啟時找到上次的草稿 → 詢問是否恢復；決定之前不會自動覆寫舊草稿
+  const [pendingDraft, setPendingDraft] = useState<SavedDraft | null>(() => readSavedDraft())
+  // 有修改但還沒下載保存
+  const [dirty, setDirty] = useState(false)
+
+  // 自動保存草稿：任何圖層變動後 0.8 秒寫進瀏覽器
+  const lastSavedLayersRef = useRef<typeof layers | null>(null)
+  useEffect(() => {
+    if (isEmbed || SHARED_SRC_URLS.length > 0) return
+    if (pendingDraft !== null) return // 還沒決定是否恢復，先別覆寫舊草稿
+    if (lastSavedLayersRef.current === null || lastSavedLayersRef.current === layers) {
+      lastSavedLayersRef.current = layers // 首次或未變動（開發模式重跑）：不算修改
+      return
+    }
+    lastSavedLayersRef.current = layers
+    setDirty(true)
+    const timer = window.setTimeout(() => {
+      try {
+        const draft: SavedDraft = {
+          savedAt: new Date().toISOString(),
+          layers: layers.map(({ doc, color, visible }) => ({ doc, color, visible })),
+        }
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+      } catch {
+        // 儲存空間不足等：略過（不擋操作，下載保存仍可用）
+      }
+    }, 800)
+    return () => window.clearTimeout(timer)
+  }, [layers, pendingDraft, isEmbed])
+
+  // 有未下載的修改時，離開頁面前提醒
+  useEffect(() => {
+    if (!dirty) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [dirty])
+
   // 使用者從檔案挑選器載入 .hst.json：好的變圖層，壞的把原因列出來（不靜默）
   const handleAddFiles = useCallback(
     (files: FileList) => {
@@ -477,6 +596,39 @@ export default function App() {
         >
           匯出／分享
         </button>
+
+        {/* 復原／重做 */}
+        <div className="flex overflow-hidden rounded-md border border-slate-300">
+          <button
+            type="button"
+            onClick={handleUndo}
+            disabled={!canUndo}
+            title="復原（Ctrl/Cmd+Z）"
+            className="px-2.5 py-1 text-sm text-slate-600 hover:bg-slate-100 disabled:opacity-30"
+          >
+            ↩
+          </button>
+          <button
+            type="button"
+            onClick={handleRedo}
+            disabled={!canRedo}
+            title="重做（Ctrl/Cmd+Shift+Z）"
+            className="border-l border-slate-300 px-2.5 py-1 text-sm text-slate-600 hover:bg-slate-100 disabled:opacity-30"
+          >
+            ↪
+          </button>
+        </div>
+
+        {dirty && (
+          <button
+            type="button"
+            onClick={() => setExportOpen(true)}
+            title="修改已自動存為瀏覽器草稿；下載 .hst.json 才是永久保存。點我開啟匯出"
+            className="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-800 hover:bg-amber-100"
+          >
+            草稿已自動保存（尚未下載）
+          </button>
+        )}
 
         <span className="ml-auto flex items-center gap-3">
           <label className="flex items-center gap-1.5 text-sm text-slate-600">
@@ -584,7 +736,12 @@ export default function App() {
         onClose={() => setImportOpen(false)}
         onImport={addLayer}
       />
-      <ExportDialog open={exportOpen} onClose={() => setExportOpen(false)} layers={layers} />
+      <ExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        layers={layers}
+        onDownloaded={() => setDirty(false)}
+      />
       {selection && cardVisible && (
         <EventDetailCard
           selection={selection}
@@ -598,6 +755,37 @@ export default function App() {
           onStartLink={createMode ? undefined : handleStartLink}
           eventOptions={eventOptions}
         />
+      )}
+
+      {/* 找到上次的草稿：詢問是否恢復 */}
+      {pendingDraft && (
+        <div className="fixed left-1/2 top-14 z-50 flex -translate-x-1/2 items-center gap-3 rounded-md border border-sky-300 bg-sky-50 px-4 py-2 text-sm text-sky-900 shadow">
+          找到上次的草稿（{timeAgo(pendingDraft.savedAt)}，{pendingDraft.layers.length} 個圖層）
+          <button
+            type="button"
+            onClick={() => {
+              restoreLayers(pendingDraft.layers)
+              setPendingDraft(null)
+            }}
+            className="rounded bg-sky-700 px-3 py-1 text-xs text-white hover:bg-sky-800"
+          >
+            恢復草稿
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                localStorage.removeItem(DRAFT_KEY)
+              } catch {
+                // 忽略
+              }
+              setPendingDraft(null)
+            }}
+            className="rounded border border-sky-300 px-3 py-1 text-xs hover:bg-sky-100"
+          >
+            捨棄
+          </button>
+        </div>
       )}
 
       {/* 連結模式的提示橫幅 */}
