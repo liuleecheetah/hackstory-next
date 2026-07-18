@@ -232,7 +232,7 @@ export function ImportDialog({ open, onClose, onImport }: Props) {
             <p className="border-t border-slate-100 pt-3 text-xs text-slate-400">
               看不懂格式？
               <a
-                href="https://github.com/liuleecheetah/hackstory-next/blob/main/docs/import-guide.md"
+                href="https://github.com/liuleecheetah/hackstory/blob/main/docs/import-guide.md"
                 target="_blank"
                 rel="noreferrer"
                 className="underline hover:text-slate-600"
