@@ -95,6 +95,8 @@ export default function App() {
   const {
     layers,
     visibleSources,
+    hiddenTracks,
+    toggleTrackVisible,
     addLayer,
     removeLayer,
     toggleVisible,
@@ -127,6 +129,8 @@ export default function App() {
   const [showDates, setShowDates] = useState(true)
   const [showYears, setShowYears] = useState(true)
   const [showRelations, setShowRelations] = useState(true)
+  // 精簡模式：事件列縮小，讓卡滿的軸線收斂、其他軸線看得到
+  const [compact, setCompact] = useState(false)
   // 摺疊空白：預設聽第一份文件的 display.collapseGaps 建議（SPEC 第 8 節）
   const [collapseGaps, setCollapseGaps] = useState(
     () => INITIAL_DOCS[0]?.display?.collapseGaps ?? false,
@@ -785,6 +789,18 @@ export default function App() {
             />
             摺疊空白
           </label>
+          <label
+            className="flex items-center gap-1.5 text-sm text-slate-600"
+            title="把事件列縮小，讓事件很多的軸線收斂，其他軸線比較看得到"
+          >
+            <input
+              type="checkbox"
+              checked={compact}
+              onChange={(e) => setCompact(e.target.checked)}
+              className="accent-slate-700"
+            />
+            精簡模式
+          </label>
         </span>
 
         {/* 尺度切換（像 Google 日曆） */}
@@ -812,7 +828,9 @@ export default function App() {
           layers={layers}
           errors={loadErrors}
           readOnly={readOnly}
+          hiddenTracks={hiddenTracks}
           onToggle={toggleVisible}
+          onToggleTrack={toggleTrackVisible}
           onMove={moveLayer}
           onRemove={removeLayer}
           onColor={setColor}
@@ -833,6 +851,7 @@ export default function App() {
             showYears={showYears}
             showRelations={showRelations}
             collapseGaps={collapseGaps}
+            compact={compact}
             selectedKey={selection?.key ?? null}
             onEventSelect={handleEventSelect}
             onEventCreate={readOnly ? undefined : handleEventCreate}

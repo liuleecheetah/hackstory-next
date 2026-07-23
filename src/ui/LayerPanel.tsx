@@ -11,7 +11,11 @@ interface Props {
   errors: string[]
   /** 唯讀檢視（分享連結）：隱藏所有編輯入口，只留檢視類操作 */
   readOnly?: boolean
+  /** 暫時被隱藏的軸線（key = `圖層id/軸線id`），用來決定軸線勾選框的狀態 */
+  hiddenTracks: Set<string>
   onToggle: (id: string) => void
+  /** 暫時顯示／隱藏文件內的單一軸線（純檢視，不改檔案） */
+  onToggleTrack: (layerId: string, trackId: string) => void
   onMove: (id: string, direction: -1 | 1) => void
   onRemove: (id: string) => void
   onColor: (id: string, color: string) => void
@@ -31,7 +35,9 @@ export function LayerPanel({
   layers,
   errors,
   readOnly = false,
+  hiddenTracks,
   onToggle,
+  onToggleTrack,
   onMove,
   onRemove,
   onColor,
@@ -192,8 +198,19 @@ export function LayerPanel({
                 const count = layer.doc.events.filter((ev) => ev.track === track.id).length
                 const trackKey = `${layer.id}/${track.id}`
                 const removable = multi && count === 0
+                // 多軸文件才需要單獨隱藏某一條軸線；單軸文件用上方的圖層勾選框即可
+                const hidden = multi && hiddenTracks.has(trackKey)
                 return (
                   <li key={track.id} className="flex items-center gap-2 py-1 pl-6">
+                    {multi && (
+                      <input
+                        type="checkbox"
+                        checked={!hidden}
+                        onChange={() => onToggleTrack(layer.id, track.id)}
+                        title={hidden ? '顯示這條軸線' : '暫時隱藏這條軸線'}
+                        className="accent-slate-700"
+                      />
+                    )}
                     {multi && (
                       <input
                         type="color"
@@ -217,7 +234,12 @@ export function LayerPanel({
                         className="min-w-0 flex-1 rounded border border-slate-400 px-1 py-0.5 text-xs"
                       />
                     ) : (
-                      <span className="min-w-0 flex-1 truncate text-xs text-slate-600">
+                      <span
+                        className={
+                          'min-w-0 flex-1 truncate text-xs ' +
+                          (hidden ? 'text-slate-300 line-through' : 'text-slate-600')
+                        }
+                      >
                         {track.title}
                       </span>
                     )}

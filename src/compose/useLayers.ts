@@ -36,6 +36,21 @@ export function useLayers(initialDocs: TimelineDocument[]) {
   // initialDocs 只在第一次渲染時使用
   const [layers, setLayers] = useState<Layer[]>(() => initialDocs.map(makeLayer))
 
+  // 暫時隱藏的軸線（key = `圖層id/軸線id`）。這是純檢視狀態：
+  // 不寫回 .hst.json、不進復原歷史，跟工具列的顯示開關同一種東西，只是細到單一軸線。
+  const [hiddenTracks, setHiddenTracks] = useState<Set<string>>(() => new Set())
+
+  /** 暫時隱藏／顯示文件內的某一條軸線 */
+  const toggleTrackVisible = useCallback((layerId: string, trackId: string) => {
+    setHiddenTracks((prev) => {
+      const next = new Set(prev)
+      const key = `${layerId}/${trackId}`
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }, [])
+
   // ---- 復原／重做 ----
   // 所有修改都經過 mutate：把「修改前」的狀態推進歷史（上限 50 步）。
   // 歷史操作刻意放在 setLayers 的更新函式外面——
@@ -276,15 +291,35 @@ export function useLayers(initialDocs: TimelineDocument[]) {
     })
   }, [])
 
-  /** 給 render 層畫的資料：只含可見圖層，依面板順序排列 */
+  /**
+   * 給 render 層畫的資料：只含可見圖層，依面板順序排列。
+   * 被暫時隱藏的軸線（連同其事件）在這裡就濾掉——render 層只收到該畫的資料，
+   * 完全不需要知道「隱藏」這個概念（分層鐵律）。
+   */
   const visibleSources = useMemo(
-    () => layers.filter((l) => l.visible).map(({ id, doc, color }) => ({ id, doc, color })),
-    [layers],
+    () =>
+      layers
+        .filter((l) => l.visible)
+        .map(({ id, doc, color }) => {
+          // 這個圖層沒有任何被隱藏的軸線 → 原樣傳下去，保持物件 identity 避免不必要的重算
+          const hidden = new Set(
+            doc.tracks.map((t) => t.id).filter((tid) => hiddenTracks.has(`${id}/${tid}`)),
+          )
+          if (hidden.size === 0) return { id, doc, color }
+          const tracks = doc.tracks.filter((t) => !hidden.has(t.id))
+          const events = doc.events.filter((e) => !hidden.has(e.track))
+          return { id, doc: { ...doc, tracks, events }, color }
+        })
+        // 整份文件的軸線都被隱藏 → 這個圖層暫時不畫
+        .filter((s) => s.doc.tracks.length > 0),
+    [layers, hiddenTracks],
   )
 
   return {
     layers,
     visibleSources,
+    hiddenTracks,
+    toggleTrackVisible,
     addLayer,
     removeLayer,
     toggleVisible,

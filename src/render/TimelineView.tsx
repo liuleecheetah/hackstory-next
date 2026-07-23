@@ -83,6 +83,8 @@ interface Props {
   showRelations?: boolean
   /** 是否摺疊大段空白（SPEC display.collapseGaps），預設不摺疊 */
   collapseGaps?: boolean
+  /** 精簡模式：把事件列高、圓點、文字縮小，同樣高度塞更多事件、其他軸線比較看得到 */
+  compact?: boolean
   /** 目前被選取的事件（組合鍵），該事件會畫上光環 */
   selectedKey?: string | null
   /** 點事件 → 回報選取；點空白處 → 回報 null */
@@ -92,7 +94,7 @@ interface Props {
 }
 
 const DAY = 86_400_000
-const AXIS_H = 32 // 頂部刻度列高度
+const AXIS_H = 46 // 頂部刻度列高度（上排放「可視範圍」文字，下排放刻度數字，避免兩者疊在一起）
 const TRACK_LABEL_H = 26 // 軸線標題列高度
 const LANE_H = 26 // 每條車道高度
 const BAND_GAP = 12 // 軸線之間的間距
@@ -193,6 +195,7 @@ export function TimelineView({
   showYears = true,
   showRelations = true,
   collapseGaps = false,
+  compact = false,
   selectedKey,
   onEventSelect,
   onEventCreate,
@@ -200,6 +203,25 @@ export function TimelineView({
   const containerRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const [width, setWidth] = useState(960)
+
+  // 尺寸度量：精簡模式用縮小的一組，一般模式沿用上方的模組常數。
+  // 事件的圓點、長條、文字、車道高度、軸線間距都跟著這組數字走。
+  const M = useMemo(
+    () =>
+      compact
+        ? { laneH: 17, trackLabelH: 20, bandGap: 7, dotR: 4, keyDotR: 6, barH: 9, keyBarH: 12, font: 11 }
+        : {
+            laneH: LANE_H,
+            trackLabelH: TRACK_LABEL_H,
+            bandGap: BAND_GAP,
+            dotR: DOT_R,
+            keyDotR: DOT_R + 2.5,
+            barH: 12,
+            keyBarH: 16,
+            font: 12,
+          },
+    [compact],
+  )
 
   // 相對時間事件的推估位置（每份文件各自求解）
   const resolvedBySource = useMemo(() => {
@@ -359,7 +381,7 @@ export function TimelineView({
 
             // 重點事件（featured）：放大、粗體、光暈，一眼看到
             const isKey = isFeatured(ev)
-            const dotR = isKey ? DOT_R + 2.5 : DOT_R
+            const dotR = isKey ? M.keyDotR : M.dotR
 
             // 進行中事件（ongoing 且沒有 end）：長條一路畫到「今天」，右端淡出。
             // 推估位置的事件不適用（位置本身就不確定）
@@ -398,7 +420,7 @@ export function TimelineView({
               : showDates
                 ? formatPointShort(start as AbsoluteTimePoint, showYears)
                 : ''
-            const labelW = estimateTextWidth(dateLabel ? `${dateLabel} ${text}` : text)
+            const labelW = estimateTextWidth(dateLabel ? `${dateLabel} ${text}` : text, M.font)
             // 標題預設放在圖形右側；右邊放不下時翻到左側，避免被畫面邊緣切掉
             const labelSide: 'right' | 'left' =
               shapeR + 6 + labelW > width && shapeL - 6 - labelW > 0 ? 'left' : 'right'
@@ -427,8 +449,8 @@ export function TimelineView({
         const lanes = assignLanes(items.map((it) => ({ left: it.occL, right: it.occR })))
         const laneCount = items.length > 0 ? Math.max(...lanes) + 1 : 1
         const bandTop = y
-        const bandH = TRACK_LABEL_H + laneCount * LANE_H + 6
-        y += bandH + BAND_GAP
+        const bandH = M.trackLabelH + laneCount * M.laneH + 6
+        y += bandH + M.bandGap
 
         return {
           key: `${source.id}/${track.id}`,
@@ -443,7 +465,7 @@ export function TimelineView({
           items: items.map((it, j) => ({
             ...it,
             lane: lanes[j],
-            cy: bandTop + TRACK_LABEL_H + lanes[j] * LANE_H + LANE_H / 2,
+            cy: bandTop + M.trackLabelH + lanes[j] * M.laneH + M.laneH / 2,
           })),
         }
       })
@@ -497,7 +519,7 @@ export function TimelineView({
     )
 
     return { bands, relationLines, height: Math.max(y + 8, 320), x }
-  }, [sources, domain, width, showDates, showYears, warp, resolvedBySource])
+  }, [sources, domain, width, showDates, showYears, warp, resolvedBySource, M])
 
   // 沒有任何可見圖層：顯示提示文字
   if (sources.length === 0) {
@@ -698,8 +720,8 @@ export function TimelineView({
               const fill = ev.color ?? color
               const eventKey = `${sourceId}/${ev.id}`
               const isSelected = selectedKey === eventKey
-              const dotR = isKey ? DOT_R + 2.5 : DOT_R
-              const barH = isKey ? 16 : 12
+              const dotR = isKey ? M.keyDotR : M.dotR
+              const barH = isKey ? M.keyBarH : M.barH
               return (
                 <g
                   key={ev.id}
@@ -823,7 +845,7 @@ export function TimelineView({
                     x={labelSide === 'right' ? shapeR + 6 : shapeL - 6}
                     y={cy + 4}
                     textAnchor={labelSide === 'right' ? 'start' : 'end'}
-                    fontSize={12}
+                    fontSize={M.font}
                     fontWeight={isKey ? 700 : 400}
                     fill={isKey ? '#1e293b' : '#334155'}
                   >
