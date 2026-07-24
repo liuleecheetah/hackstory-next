@@ -3,15 +3,9 @@
 // 這一層不碰畫面，也不知道 CSV 是使用者上傳的還是從 Google Sheet 抓來的。
 
 import Papa from 'papaparse'
-import type {
-  DraftEvent,
-  HstEvent,
-  RawRow,
-  StandardField,
-  TimelineDocument,
-  TriageResult,
-} from '../core'
-import { mapHeader, triageRows } from '../core'
+import type { HstEvent, TimelineDocument } from '../core'
+import type { DraftEvent, RawRow, StandardField, TriageResult } from './rows'
+import { mapHeader, triageRows } from './rows'
 
 /** 表頭對應結果：原始表頭 → 認出的標準欄位（null = 認不得，該欄忽略） */
 export interface HeaderMapping {

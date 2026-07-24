@@ -7,7 +7,8 @@ import { useRef, useState } from 'react'
 import type { HeaderMapping } from '../adapters/csv'
 import { draftsToDocument, parseCsvText, retryRow } from '../adapters/csv'
 import { fetchSheetCsv } from '../adapters/gsheet'
-import type { DraftEvent, RawRow, RowWarning, TimelineDocument } from '../core'
+import type { DraftEvent, RawRow, RowWarning } from '../adapters/rows'
+import type { TimelineDocument } from '../core'
 import { validateDocument } from '../core'
 
 interface Props {

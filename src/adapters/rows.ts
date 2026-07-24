@@ -1,13 +1,15 @@
-// core 層：表格列分流器
+// adapters 層：表格列分流器
 // 把「已對應好標準欄位」的試算表列，分流成：成功事件／警告／待修正。
-// 這裡實作 SPEC 第 9 節的所有髒資料規則。M4 的 CSV / Google Sheet 匯入器
-// 只負責把檔案讀成列（papaparse），分流邏輯全部在這一層，方便測試。
+// 這裡實作 SPEC 第 9 節的所有髒資料規則。CSV / Google Sheet 匯入器
+// 只負責把檔案讀成列（papaparse），欄位對應與分流邏輯都在這一層。
+// （表頭別名、RawRow、髒資料分流屬「特定匯入格式」的知識，不放 core——
+//   新增一種匯入來源時只動 adapters，是本專案的模組化鐵律。時間解析仍借 core。）
 //
 // 最高原則：匯入器永遠不靜默丟資料。
 // 所有無法處理的列都要回報給使用者——資料是人辛苦整理的。
 
-import type { AbsoluteTimePoint, SourceRef } from './types'
-import { parseDateTime } from './time'
+import type { AbsoluteTimePoint, SourceRef } from '../core'
+import { parseDateTime } from '../core'
 
 /** 標準欄位（SPEC 第 9 節的欄位對應表） */
 export type StandardField =
